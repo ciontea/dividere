@@ -3,7 +3,8 @@ Pre-req to connect to Office 365 via PowerShell is the command below
     Install-Module -Name MSOnline
 
 Purpose of Script: 
-It is primarily intended to delete a spam email (or all emails from a bad sender) from all Office 365 mailboxes without needing to get the end-users involved or have them notified. This helps in case spam gets through your spam filter and you need to delete a malicious email quickly from all mailboxes before someone opens the attachment(s) or link(s)
+It is primarily intended to delete a spam email (or all emails from a bad sender) from all Office 365 mailboxes without needing to get the end-users involved or have them notified.
+This helps in case spam gets through your spam filter and you need to delete a malicious email quickly from all mailboxes before someone opens the attachment(s) or link(s).
 #>
 
 
