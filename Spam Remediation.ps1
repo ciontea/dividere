@@ -66,25 +66,11 @@ function startover {
     $answer = Read-Host -Prompt "Would you like to start over? (y or n)"
 
     if ($answer -eq "y") {
-        #Clearing all the variables so there are no issues
-        Set-Variable -Name "subject" -Value $null -Scope Global
-        Set-Variable -Name "from" -Value $null -Scope Global
-        Set-Variable -Name "searchname" -Value $null -Scope Global
-        Set-Variable -Name "confirm" -Value $null -Scope Global
-        Set-Variable -Name "ComplianceSearchAction" -Value $null -Scope Global
-        Set-Variable -Name "quit" -Value $true -Scope Global
-        Set-Variable -Name "purge" -Value $true -Scope Global
-        Set-Variable -Name "delete" -Value $null -Scope Global
-        Set-Variable -Name "deletesearch" -Value $null -Scope Global
-        Set-Variable -Name "preview" -Value $null -Scope Global
-        Set-Variable -Name "previewselected" -Value $null -Scope Global
+        #Clearing variables
         Set-Variable -Name "newsubject" -Value $null -Scope Global
         Set-Variable -Name "newfrom" -Value $null -Scope Global
         Set-Variable -Name "newsearchname" -Value $null -Scope Global
         Set-Variable -Name "newquery" -Value $null -Scope Global
-        Set-Variable -Name "ticket" -Value $null -Scope Global
-        Set-Variable -Name "ticketselected" -Value $null -Scope Global
-        Set-Variable -Name "answer" -Value $null -Scope Global
     } elseif ($answer -eq "n") {
         exit365
     } else {
@@ -108,8 +94,6 @@ $UserCredential = $null #Clearing out your credentials now that you're connected
 Set-Variable -Name "repeat" -Value $true -Scope Global
 
 while ($repeat) {
-    $quit = $null
-    $purge = $null
     while ($confirm -ne "y") {
         #Gathering Information from user about the spam email and making sure it is correct
         inputnote
@@ -138,7 +122,7 @@ while ($repeat) {
             Write-Host "Invalid Selection" -ForegroundColor Red -BackgroundColor Black
         }
     }
-    $confirm = $null #Clearing out the variable because it is used by the function called 'preview'
+    $confirm = $null
     
     #Starting the content search
     New-ComplianceSearch -Name $searchname -ExchangeLocation All -ContentMatchQuery $query -AllowNotFoundExchangeLocationsEnabled $false
@@ -230,6 +214,7 @@ while ($repeat) {
                         Write-Host "Invalid Selection" -ForegroundColor Red -BackgroundColor Black
                     }
                 }
+                $confirm = $null
                 #Not changing '$previewselected = $true' because I want it to loop back so you get the option to re-choose your preview options after changing the query
             } elseif ($preview -eq "exit") {
                     delsearchexit
@@ -242,18 +227,21 @@ while ($repeat) {
             }
             $confirm = $null
         }
+        $preview = $null
+        $previewselected = $null
+
         $delete = Read-Host -Prompt "Ready to delete the emails? (y, n, exit)"
         if ($delete -eq "y") {
             New-ComplianceSearchAction -SearchName $searchname -Purge -PurgeType HardDelete
         } elseif ($delete -eq "n") {
-            $previewselected = $false #This allows the previous loop to restart
-            $confirm = $null
+            #So it doesn't say invalid selection when typing 'n'
         } elseif ($delete -eq "exit") {
             delsearchexit
         } else {
             Write-Host "Invalid Selection" -ForegroundColor Red -BackgroundColor Black
         }
     }
+    $delete = $null
     
     #Notifying administrators with the details of the query that just ran (can also be used to create a ticket for yourself)
     while ($ticketselected -ne $true) {
@@ -292,6 +280,8 @@ while ($repeat) {
             Write-Host "Invalid Selection" -ForegroundColor Red -BackgroundColor Black
         }
     }
+    $ticket = $null
+    $ticketselected = $null
     
     #Removing content search as it should no longer be needed now if the purge is complete (unless you specify you want to keep it)
     while ($purge -ne "y") {
@@ -304,12 +294,17 @@ while ($repeat) {
                 if ($deletesearch -eq "y") {
                     Remove-ComplianceSearch -Identity $searchname
                     startover
+                    $quit = $true
+                    $purge = $true
                 } elseif ($deletesearch -eq "n") {
                     startover
+                    $quit = $true
+                    $purge = $true
                 } else {
                     Write-Host "Invalid Selection" -ForegroundColor Red -BackgroundColor Black
                 }
             }
+            $quit = $null
         } elseif ($purge -eq "n") {
             Start-Sleep -Seconds 6
             Get-ComplianceSearch -Identity $searchname
@@ -317,4 +312,5 @@ while ($repeat) {
             Write-Host "Invalid Selection" -ForegroundColor Red -BackgroundColor Black
         }
     }
+    $purge = $null
 }
