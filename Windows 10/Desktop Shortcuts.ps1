@@ -1,6 +1,6 @@
 <# Notes
 -The class isn't really needed but helps when making as many icons as I do in my script
--I would also recommend avoid simple arrays to store these locations
+-I would also recommend avoiding simple arrays to store these locations
 #>
 
 #Class used for the public desktop shortcuts
