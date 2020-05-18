@@ -16,5 +16,5 @@ foreach ($user in $users) {
     Get-ADUser -Filter $filter -Properties Mobile, OfficePhone, HomePhone, Mail | Select-Object Name, Mobile, OfficePhone, HomePhone, Mail | Sort-Object Name
 }
 
-#Get the members of a sec group and return their user object with the mobile property
+#Get the members of an Active Directory security group and return their user object with the mobile property
 Get-ADGroupMember $groupname | Get-ADUser -Properties mobile
