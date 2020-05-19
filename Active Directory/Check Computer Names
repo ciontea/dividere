@@ -1,0 +1,7 @@
+<#
+    .SYNOPSIS
+    If you have specific computers you found in a report and you need to find their descriptions easily
+#>
+
+$computers = @("Computer 1","Computer 2")
+foreach ($computer in $computers){Get-ADComputer -Filter {Name -eq $computer} -Properties Description | Select-Object Name, Description}
