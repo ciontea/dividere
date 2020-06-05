@@ -59,6 +59,7 @@ $workfolderspath = "\\workfolders server\syncsharename"
 
 ########################## Functions Needed ##########################
 function setdomainadmin {
+    $accessrule = @()
     Write-Host "$($acl.PSChildName) Folder does not have an associated AD account therefore access will be restricted to only Domain Admins" -BackgroundColor Black -ForegroundColor Yellow
     $aclowner = "Domain Admins"
     #Disabling inheritance on the folder. To enable inheritance again, flip this section to $false,$true instead of $true,$false
@@ -85,6 +86,7 @@ function setdomainadmin {
     $acl | Set-Acl $acl.path
 }
 function setdomainuser {
+    $accessrule = @()
     Write-Host "The owner of folder $($acl.PSChildName) is AD User $aclowner"
     #Disabling inheritance on the folder. To enable inheritance again, flip this section to $false,$true instead of $true,$false
     $acl.SetAccessRuleProtection($true,$false)
@@ -166,7 +168,6 @@ for ($i = 0; $i -lt ($acl.access).count; $i++) {
 
 ########################## Making the required changes ##########################
 foreach ($acl in $userfolderpermissions) {
-    $accessrule = @()
     $continue = $null
     $hasowner = $null
 
