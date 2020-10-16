@@ -70,15 +70,9 @@ function setdomainadmin {
     $owner = New-Object System.Security.Principal.Ntaccount("$DomainName\$aclowner")
     $acl.SetOwner($owner)
     #Adding the correct permissions. The order of the command below can be found by running $acl.access which should show identity, fileSystemRights, inheritanceFlags, propagationFlags (not needed so leave blank), type
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\$aclowner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\LOCAL SERVICE","FullControl","ContainerInherit, ObjectInherit","None","Deny")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("BUILTIN\Administrators","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\Authenticated Users","AppendData, ReadAndExecute, ChangePermissions, Synchronize","ObjectInherit","InheritOnly","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("CREATOR OWNER","FullControl","ContainerInherit, ObjectInherit","InheritOnly","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\Domain Users","AppendData, ReadAndExecute, ChangePermissions, Synchronize","ObjectInherit","InheritOnly","Allow")
+    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\$aclOwner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
     $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\SYSTEM","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("BUILTIN\Users","AppendData, ReadAndExecute, ChangePermissions, Synchronize","ObjectInherit","InheritOnly","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\DATA_RW","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\Domain Admins","FullControl","ContainerInherit, ObjectInherit","None","Allow")
     foreach ($rule in $accessrule) {
         $acl.SetAccessRule($rule)
     }
@@ -98,15 +92,6 @@ function setdomainuser {
     #Adding the correct permissions. The order of the command below can be found by running $acl.access which should show identity, fileSystemRights, inheritanceFlags, propagationFlags (not needed so leave blank), type
     $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\$aclowner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
     $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\SYSTEM","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    <# Old Permissions that were part of the script but I found out after testing are not needed, only the two above: SYSTEM and the owner
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\LOCAL SERVICE","FullControl","ContainerInherit, ObjectInherit","None","Deny")
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("BUILTIN\Administrators","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\Authenticated Users","AppendData, ReadAndExecute, ChangePermissions, Synchronize","ObjectInherit","InheritOnly","Allow")
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("CREATOR OWNER","FullControl","ContainerInherit, ObjectInherit","InheritOnly","Allow")
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\Domain Admins","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\Domain Users","AppendData, ReadAndExecute, ChangePermissions, Synchronize","ObjectInherit","InheritOnly","Allow")
-        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("BUILTIN\Users","AppendData, ReadAndExecute, ChangePermissions, Synchronize","ObjectInherit","InheritOnly","Allow")
-    #>
     foreach ($rule in $accessrule) {
         $acl.SetAccessRule($rule)
     }
