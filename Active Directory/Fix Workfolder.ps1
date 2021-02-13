@@ -56,133 +56,211 @@ $adusers = Get-ADUser -Filter *                             #May want to restric
 $exportpath = 'C:\temp\Work Folders Permission Changes'     #This is where the csv showing all previous NTFS permissions will be stored
 $domainname = "CONTOSO"
 $workfolderspath = "\\workfolders server\syncsharename"
+$syncStatePath = "E:\SyncShareState\Users Shared Folders"
+$SPECIFICUSER = "dciontea" #This must be the name of their SamAccountName in ADUC. Example: dciontea or cdeorajh
 
 ########################## Functions Needed ##########################
-function setdomainadmin {
-    $accessrule = @()
+function setDomainAdmin {
     Write-Host "$($acl.PSChildName) Folder does not have an associated AD account therefore access will be restricted to only Domain Admins" -BackgroundColor Black -ForegroundColor Yellow
-    $aclowner = "Domain Admins"
     #Disabling inheritance on the folder. To enable inheritance again, flip this section to $false,$true instead of $true,$false
-    $acl.SetAccessRuleProtection($true,$false)
+        $acl.SetAccessRuleProtection($true,$false)
     #Remove all ACL permissions now that the inherited permissions are gone
-    $acl.Access | ForEach-Object {$acl.RemoveAccessRule($_)}
+        $acl.Access | ForEach-Object {$acl.RemoveAccessRule($_)}
     #Setting the owner of the folder
-    $owner = New-Object System.Security.Principal.Ntaccount("$DomainName\$aclowner")
-    $acl.SetOwner($owner)
+        $aclOwner = "Domain Admins"
+        $owner = New-Object System.Security.Principal.Ntaccount("$domainName\$aclOwner")
+    #Change the owner of the folder only if it needs to
+        if ($acl.Owner -ne $owner) {
+            $acl.SetOwner($owner)
+        }
     #Adding the correct permissions. The order of the command below can be found by running $acl.access which should show identity, fileSystemRights, inheritanceFlags, propagationFlags (not needed so leave blank), type
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\$aclOwner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\SYSTEM","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\Domain Admins","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    foreach ($rule in $accessrule) {
-        $acl.SetAccessRule($rule)
-    }
+        $accessrule = @()
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\$aclOwner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\SYSTEM","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\DATA_RW","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\Domain Admins","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\admworkfolders","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        foreach ($rule in $accessrule) {
+            $acl.SetAccessRule($rule) #The for loop is required or the command won't run, can't save these 3 lines of code
+        }
     #Making the permissions changes
-    $acl | Set-Acl $acl.path
+        $acl | Set-Acl $acl.path
 }
-function setdomainuser {
-    $accessrule = @()
-    Write-Host "The owner of folder $($acl.PSChildName) is AD User $aclowner"
+function setDomainUser {
+    Write-Host "The owner of folder $($acl.PSChildName) is AD User $aclOwner" -BackgroundColor Black
     #Disabling inheritance on the folder. To enable inheritance again, flip this section to $false,$true instead of $true,$false
-    $acl.SetAccessRuleProtection($true,$false)
+        $acl.SetAccessRuleProtection($true,$false)
     #Remove all ACL permissions now that the inherited permissions are gone
-    $acl.Access | ForEach-Object {$acl.RemoveAccessRule($_)}
+        $acl.Access | ForEach-Object {$acl.RemoveAccessRule($_)}
     #Setting the owner of the folder
-    $owner = New-Object System.Security.Principal.Ntaccount("$DomainName\$aclowner")
-    $acl.SetOwner($owner)
+        $owner = New-Object System.Security.Principal.Ntaccount("$domainName\$aclOwner")
+        if ($acl.Owner -notlike "*$aclOwner*") {
+            $acl.SetOwner($owner)
+        }
     #Adding the correct permissions. The order of the command below can be found by running $acl.access which should show identity, fileSystemRights, inheritanceFlags, propagationFlags (not needed so leave blank), type
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$DomainName\$aclowner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\SYSTEM","FullControl","ContainerInherit, ObjectInherit","None","Allow")
-    foreach ($rule in $accessrule) {
-        $acl.SetAccessRule($rule)
-    }
+        $accessrule = @()
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\$aclOwner","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\SYSTEM","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$domainName\admworkfolders","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+        foreach ($rule in $accessrule) {
+            $acl.SetAccessRule($rule) #The for loop is required or the command won't run, can't save these 3 lines of code
+        }
     #Making the permissions changes
-    $acl | Set-Acl $acl.path
+        $acl | Set-Acl $acl.path
+}
+function changeSubfolderPermissions {
+    #Gaining access to the user's parent folder
+        #Disabling inheritance on the folder. To enable inheritance again, flip this section to $false,$true instead of $true,$false
+            $acl.SetAccessRuleProtection($true,$false)
+        #Remove all ACL permissions now that the inherited permissions are gone
+            $acl.Access | ForEach-Object {$acl.RemoveAccessRule($_)}
+        #Setting the owner of the folder
+            $owner = New-Object System.Security.Principal.Ntaccount("$currentUser")
+            $acl.SetOwner($owner)
+
+        #Adding the correct permissions. The order of the command below can be found by running $acl.access which should show identity, fileSystemRights, inheritanceFlags, propagationFlags (not needed so leave blank), type
+            $accessrule = @()
+            $accessrule += New-Object System.Security.AccessControl.FileSystemAccessRule("$currentUser","FullControl","ContainerInherit, ObjectInherit","None","Allow")
+            foreach ($rule in $accessrule) {
+                $acl.SetAccessRule($rule) #The for loop is required or the command won't run, can't save these 3 lines of code
+            }
+        #Making the permissions changes
+            $acl | Set-Acl $acl.path
+    #Making sure inheritance is enabled on all subfolders and objects within the parent folder since this is how WorkFolders assigns the permissions
+        $aclPath = ($acl.path).Replace("Microsoft.PowerShell.Core\FileSystem::","")
+        $subFolders = Get-ChildItem $aclPath
+        $subUserFolderPermissions = @()
+
+        foreach ($sFolder in $subFolders) {
+            $subUserFolderPermissions += Get-Acl "$aclPath\$sFolder"
+        }
+
+        foreach ($sAcl in $subUserFolderPermissions) {
+            if ($sAcl.AreAccessRulesProtected -eq $true) {
+                #Enabling inheritance on the folder. To enable inheritance again, flip this section to $false,$true instead of $true,$false
+                    $sAcl.SetAccessRuleProtection($false,$true)
+                #Remove all ACL permissions now that the inherited permissions are gone
+                    $sAcl.Access | ForEach-Object {$sAcl.RemoveAccessRule($_)}
+                #Making the permissions changes
+                    $sAcl | Set-Acl $sAcl.path
+            }
+        }
 }
 
 ########################## Grabbing the ACL (permissions) and AD user information from the folders ##########################
-    $userfolders = Get-ChildItem $workfolderspath -Directory
-    $exceptionfolders = @()
-    $userfolderpermissions = @()
+    $userFolders = Get-ChildItem $workFoldersPath -Directory
+    $exceptionFolders = @()
+    $userFolderPermissions = @()
 
-    foreach ($folder in $userfolders) {
-        $continue = $null
-        foreach ($exception in $manualexceptions) {
-            if ($folder.Name -like "*$exception*") {
-                $continue = $false
+    if ($null -eq $SPECIFICUSER) {
+        foreach ($folder in $userFolders) {
+            $continue = $null
+            foreach ($exception in $manualExceptions) {
+                if ($folder.Name -like "*$exception*") {
+                    $continue = $false
+                }
+            }
+            if ($continue -ne $false) {
+                try {
+                    $userFolderPermissions += Get-Acl "$workFoldersPath\$folder"
+                } catch {
+                    $exceptionFolders += $folder
+                }
             }
         }
-        if ($continue -ne $false) {
-            try {
-                $userfolderpermissions += Get-Acl "$workfolderspath\$folder"
-            } catch {
-                $exceptionfolders += $folder
-            }
+        $exceptionFolders += $manualExceptions
+        foreach ($exception in $exceptionFolders) {
+            Write-Host "$exception folder's permissions will not be changed or you do not have permissions to this folder" -BackgroundColor Black -ForegroundColor Yellow
         }
-    }
-    $exceptionfolders += $manualexceptions
-    foreach ($exception in $exceptionfolders) {
-        Write-Host "$exception folder's permissions will not be changed or you do not have permissions to this folder" -BackgroundColor Black -ForegroundColor Yellow
+    } else {
+        $userFolderPermissions += Get-Acl "$workFoldersPath\$SPECIFICUSER"
     }
 
 ########################## Backing up the current permissions to a csv if a rollback is needed ##########################
 #VERY IMPORTANT: This does not create a record of all NTFS settings but only the ones we require
 #Creating the folder for the backup if not already created
-try {
-    if (!(Test-Path $exportpath)) {New-Item -ItemType Directory -Path $exportpath}
-} catch {
-    New-Item -ItemType Directory -Path $exportpath
-}
-
-for ($i = 0; $i -lt ($acl.access).count; $i++) {
-    $ruleHash = $null
-    $ruleHash = [ordered]@{
-        PSPath                          = $acl.PSPath
-        PSParentPath                    = $acl.PSParentPath
-        PSChildName                     = $acl.PSChildName
-        "Access \ IdentityReference"    = $acl.Access.IdentityReference.Value[$i]
-        "Access \ FileSystemRights"     = $acl.Access.FileSystemRights[$i]
-        "Access \ AccessControlType"    = $acl.Access.AccessControlType[$i]
-        "Access \ IsInherited"          = $acl.Access.IsInherited[$i]
-        "Access \ InheritanceFlags"     = $acl.Access.InheritanceFlags[$i]
-        "Access \ PropagationFlags"     = $acl.Access.PropagationFlags[$i]
-        Owner                           = $acl.Owner
-        Path                            = $acl.Path
-        Sddl                            = $acl.Sddl
+if ($null -eq $SPECIFICUSER) {
+    try {
+        if (!(Test-Path $exportPath)) {New-Item -ItemType Directory -Path $exportPath}
+    } catch {
+        New-Item -ItemType Directory -Path $exportPath
     }
-    $ruleObject = New-Object PSObject -Property $ruleHash
-    $ruleObject | Export-Csv "$exportpath\User Folder Permissions.csv" -NoTypeInformation -Append
+
+    foreach ($ace in $userFolderPermissions) {
+        $ruleHash = $null
+        $aclAccess = @()
+
+        for ($i = 0; $i -lt (($ace.Access).count)-1; $i++) {
+            $aclAccess += $ace.Access.IdentityReference.Value[$i] + "," +
+            $ace.Access.FileSystemRights[$i] + "," +
+            $ace.Access.AccessControlType[$i] + "," +
+            $ace.Access.IsInherited[$i] + "," +
+            $ace.Access.InheritanceFlags[$i] + "," +
+            $ace.Access.PropagationFlags[$i]
+        }
+        $aclAccess = $aclAccess -join ' ; '
+
+        $ruleHash = [ordered]@{
+            PSPath          = $ace.PSPath
+            PSChildName     = $ace.PSChildName
+            Access          = $ace.aclAccess
+            Owner           = $ace.Owner
+            Path            = $ace.Path #This is added because in some scenarios it can be different than the PSPath
+            Sddl            = $ace.Sddl
+        }
+        $ruleObject = New-Object PSObject -Property $ruleHash
+        $ruleObject | Export-Csv "$exportPath\$(Get-Date -UFormat "%Y-%m-%d, Time (24-HR EST) %H-%M").csv" -NoTypeInformation -Append
+    }
 }
 
 ########################## Making the required changes ##########################
-foreach ($acl in $userfolderpermissions) {
-    $continue = $null
-    $hasowner = $null
+#Stopping the workfolders service just in case it causes any issues
+if ($null -eq $SPECIFICUSER) {Stop-Service "Windows Sync Share"}
+    #If the service ever fails to stop, open task manager > services tab > find the PID number of the service that has the description "Windows Sync Share" and run this command below
+    #taskkill /f /pid [PID]
 
-    foreach ($exception in $manualexceptions) {
+foreach ($acl in $userFolderPermissions) {
+    $continue = $null
+    $hasOwner = $null
+
+    foreach ($exception in $manualExceptions) {
         if ($exception -like $acl.PSChildName) {
             $continue = $false
         }
     }
 
     if ($continue -ne $false) {
-        if ($acl.Path -notlike "*.OLD*") {    
-            <# NEED TO ADD SECTION for if the user no longer has an AD account but still has a folder, only domain admins should have access and restrict it to domain admins only#>
-            #Adding the permissions and disabling inheritence on all folders
-            $aclowner = @()    
-            
-            foreach ($aduser in $adusers) {
+        if ($acl.Path -notlike "*.OLD*") {
+            $aclOwner = @()
+
+            foreach ($aduser in $adUsers) {
                 if ($aduser.SamAccountName -like $acl.PSChildName) {
-                    $hasowner = $true
-                    $aclowner = $aduser.SamAccountName
+                    $hasOwner = $true
+                    $aclOwner = $aduser.SamAccountName
                 }
             }
-            if ($hasowner) {
-                setdomainuser
+            if ($hasOwner) {
+                changeSubfolderPermissions
+                setDomainUser
+
+                #Fixing the sync now that the permission changes have been made. This is only done for domain user because they have an active AD account that is still syncing
+                    takeown /F "$syncStatePath\$aclOwner@$domainName" /R /A /D Y
+                    Remove-Item -Path "$syncStatePath\$aclOwner@$domainName" -Force -Recurse
+                    if ($null -ne $SPECIFICUSER) {Repair-SyncShare -User $aclOwner -Name "Users Shared Folders" -Verbose} #The command is to be run only when running this script for a specific user for reason below
+                    <#
+                    Reason why Repair-SyncShare is not part of the script anymore for everyone is because it forces the user to pull ALL of their data again.
+                    So if the repair was run on 5 users and each user profile is 10GB, workfolders on all of their clients will try to pull the 10GB all over again totalling over 50GB as a minimum depending how many devices they have
+                    #>
             } else {
-                setdomainadmin
+                changeSubfolderPermissions
+                setDomainAdmin
             }
         } else {
-            setdomainadmin
+            changeSubfolderPermissions
+            setDomainAdmin
         }
     }
 }
+
+#Starting the workfolders service now that all the changes have been made
+    if ($null -eq $SPECIFICUSER) {Start-Service "Windows Sync Share"}
