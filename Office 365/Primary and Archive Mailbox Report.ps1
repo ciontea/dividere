@@ -1,6 +1,8 @@
 #Purpose: Get information on all user's primary and archive mailbox (if they have one) usage information. Report will only run on Tuesday's but this can be removed
 
 $global:mailboxes              = Get-Mailbox -ResultSize Unlimited
+$global:date                   = Get-Date -UFormat "%Y-%m-%d"
+$global:logpath                = "C:\logs"
 
 if ((Get-Date -Format "dddd") -like "*Tuesday*") {
         foreach ($mailbox in $mailboxes) {
