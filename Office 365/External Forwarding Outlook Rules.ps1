@@ -1,6 +1,8 @@
 #Purpose: Will find anyone with Outlook rules that auto forward emails to external users. Report will only run on Tuesday's but this can be removed
 
 $global:mailboxes              = Get-Mailbox -ResultSize Unlimited
+$global:date                   = Get-Date -UFormat "%Y-%m-%d"
+$global:logpath                = "C:\logs"
 
 if ((Get-Date -Format "dddd") -like "*Tuesday*") {
         foreach ($mailbox in $mailboxes) {
