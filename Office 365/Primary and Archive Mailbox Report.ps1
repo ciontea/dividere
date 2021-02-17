@@ -6,7 +6,6 @@ $global:logpath                = "C:\logs"
 
 if ((Get-Date -Format "dddd") -like "*Tuesday*") {
         foreach ($mailbox in $mailboxes) {
-            #Report 1: Getting a report of all primary mailboxes and archive mailbox sizes
                 #Finding mailbox and online archive mailbox size information
                     $LastProcessed = $Null
                     $mailboxstats = Get-MailboxStatistics $mailbox.userprincipalname
@@ -14,33 +13,38 @@ if ((Get-Date -Format "dddd") -like "*Tuesday*") {
                         $archivemailboxstats = Get-MailboxStatistics -archive $mailbox.userprincipalname
                         $archivesize = $archivemailboxstats.TotalItemSize
                         $archiveitemcount = $archivemailboxstats.ItemCount
+
+                        #Creating a column in Excel report that contains just the archive mailbox's size in GB without text so it can be filtered easily in Excel
+                            [string]$dirtySize = $archivesize.Value
+
+                            if ($dirtySize -like "*KB*") {
+                                [string]$archiveMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' KB')) #Variable must be a string to use the .SubString method
+                                [decimal]$archiveMailboxGB = [decimal]$primaryMailboxGB / 1000000 #Converting to GB
+                            } elseif ($dirtySize -like "*MB*") {
+                                [string]$archiveMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' MB')) #Variable must be a string to use the .SubString method
+                                [decimal]$archiveMailboxGB = [decimal]$primaryMailboxGB / 1000 #Converting to GB
+                            } elseif ($dirtySize -like "*GB*") {
+                                [decimal]$archiveMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' GB')) #Variable must be a string to use the .SubString method
+                            }
                     } else {
+                        $archiveMailboxGB = $null
+                        Remove-Variable -Name "archiveMailboxGB" #This is so 0 is not shown in the report for the size and instead just blank for easier reading
+                        $archivemailboxstats = $null
                         $archivesize = $null
                         $archiveitemcount = $null
                     }
 
-                #Creating a column in Excel report that contains just the mailboxes size in GB so it can be filtered
-                    #Primary Mailbox
+                #Creating a column in Excel report that contains just the primary mailbox's size in GB without text so it can be filtered easily in Excel
                         [string]$dirtySize = $mailboxstats.TotalItemSize.Value
+
                         if ($dirtySize -like "*KB*") {
                             [string]$primaryMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' KB')) #Variable must be a string to use the .SubString method
-                            $primaryMailboxGB = [decimal]$primaryMailboxGB / 1000000 #Converting to GB
+                            [decimal]$primaryMailboxGB = [decimal]$primaryMailboxGB / 1000000 #Converting to GB
                         } elseif ($dirtySize -like "*MB*") {
                             [string]$primaryMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' MB')) #Variable must be a string to use the .SubString method
-                            $primaryMailboxGB = [decimal]$primaryMailboxGB / 1000 #Converting to GB
+                            [decimal]$primaryMailboxGB = [decimal]$primaryMailboxGB / 1000 #Converting to GB
                         } elseif ($dirtySize -like "*GB*") {
-                            [string]$primaryMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' GB')) #Variable must be a string to use the .SubString method
-                        }
-                    #Archive Mailbox
-                        [string]$dirtySize = $archivesize.Value
-                        if ($dirtySize -like "*KB*") {
-                            [string]$archiveMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' KB')) #Variable must be a string to use the .SubString method
-                            $archiveMailboxGB = [decimal]$primaryMailboxGB / 1000000 #Converting to GB
-                        } elseif ($dirtySize -like "*MB*") {
-                            [string]$archiveMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' MB')) #Variable must be a string to use the .SubString method
-                            $archiveMailboxGB = [decimal]$primaryMailboxGB / 1000 #Converting to GB
-                        } elseif ($dirtySize -like "*GB*") {
-                            [string]$archiveMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' GB')) #Variable must be a string to use the .SubString method
+                            [decimal]$primaryMailboxGB = $dirtySize.Substring(0, $dirtySize.LastIndexOf(' GB')) #Variable must be a string to use the .SubString method
                         }
 
                 #Making sure that the primary mailbox is not larger than 50GB or it could mean there is an issue with the archive mailbox or that it was never enabled, etc.
@@ -76,7 +80,7 @@ if ((Get-Date -Format "dddd") -like "*Tuesday*") {
                     $xml = [xml]($Log.MailboxLog)
                     $LastProcessed = ($xml.Properties.MailboxTable.Property | Where-Object {$_.Name -like "*ELCLastSuccessTimestamp*"}).Value
                     $ItemsDeleted  = $xml.Properties.MailboxTable.Property | Where-Object {$_.Name -like "*ElcLastRunDeletedFromRootItemCount*"}
-                    if ($null -eq $LastProcessed) {$LastProcessed = "Not processed"}
+                    if ($null -eq $LastProcessed) {$LastProcessed = "Not Processed"}
 
                     $ruleHash = $null
                     $ruleHash = [ordered]@{
