@@ -43,10 +43,10 @@ function launchwebsite {
 function buildquery {
     #For more ideas here https://docs.microsoft.com/en-us/microsoft-365/compliance/keyword-queries-and-search-conditions?view=o365-worldwide
     if (($null -eq $subject) -or ($subject -eq "")) {
-        $from = '(From=' + $from + ')'
+        $from = 'From=' + $from + ''
         Set-Variable -Name "query" -Value $from -Scope Global
     } elseif (($null -eq $from) -or ($from -eq "")) {
-        $subject = '(SubjectTitle="' + $subject + '")'
+        $subject = 'SubjectTitle="' + $subject + '"'
         Set-Variable -Name "query" -Value $subject -Scope Global
     } else {
         $subject = '(SubjectTitle="' + $subject + '")'
