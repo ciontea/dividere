@@ -18,3 +18,11 @@ Rename-Item $downloadPath\Auto-GPT\.env.template $downloadPath\Auto-GPT\.env #Re
 #Adding the API Keys as defined by variables
 (Get-Content -Path "$downloadPath\Auto-GPT\.env") -replace "OPENAI_API_KEY=your-openai-api-key", "OPENAI_API_KEY=$openAPIKey" | Set-Content -Path "$downloadPath\Auto-GPT\.env"
 (Get-Content -Path "$downloadPath\Auto-GPT\.env") -replace "ELEVENLABS_API_KEY=your-elevenlabs-api-key", "ELEVENLABS_API_KEY=$elevenLabsAPIKey" | Set-Content -Path "$downloadPath\Auto-GPT\.env"
+
+
+<#
+LAUNCHING AUTOGPT (use commands below)
+
+Cd $downloadPath\Auto-GPT
+python -m autogpt
+#>
